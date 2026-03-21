@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nestlé — Smart Stock Aging Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --nestle-blue: #003087;
+            --nestle-light-blue: #0057B8;
+            --nestle-accent: #00AEEF;
+            --sidebar-w: 260px;
+        }
+
+        * {
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        code,
+        .mono {
+            font-family: 'DM Mono', monospace;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: var(--sidebar-w);
+            transition: transform 0.3s ease;
+        }
+
+        /* Nav items */
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.07);
+            color: #fff;
+        }
+
+        .nav-item.active {
+            background: rgba(0, 174, 239, 0.15);
+            color: #00AEEF;
+        }
+
+        .nav-item .icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        /* Page sections */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Status badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-green {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .badge-yellow {
+            background: #fef9c3;
+            color: #92400e;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .badge-gray {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        /* Toast */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            min-width: 300px;
+            max-width: 400px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast-success {
+            background: #fff;
+            border-left: 4px solid #22c55e;
+            color: #1e293b;
+        }
+
+        .toast-error {
+            background: #fff;
+            border-left: 4px solid #ef4444;
+            color: #1e293b;
+        }
+
+        .toast-info {
+            background: #fff;
+            border-left: 4px solid #3b82f6;
+            color: #1e293b;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table th {
+            background: #f8fafc;
+            color: #64748b;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table td {
+            padding: 13px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+            vertical-align: middle;
+        }
+
+        .data-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* Progress bar */
+        .shelf-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .shelf-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.4s;
+        }
+
+        /* Input */
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #1e293b;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #fff;
+        }
+
+        .form-input:focus {
+            border-color: var(--nestle-accent);
+            box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            display: block;
+        }
+
+        /* Stat cards */
+        .stat-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #f1f5f9;
+            transition: box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 20px rgba(0, 48, 135, 0.08);
+        }
+
+        /* Dispatch result */
+        .dispatch-result {
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .dispatch-approved {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+        }
+
+        .dispatch-rejected {
+            background: #fff1f2;
+            border: 1px solid #fca5a5;
+        }
+
+        /* Login screen */
+        #login-screen {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #003087 0%, #0057B8 50%, #00AEEF 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 20px;
+            padding: 48px 44px;
+            width: 420px;
+            max-width: 95vw;
+            box-shadow: 0 32px 80px rgba(0, 48, 135, 0.3);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Role chip */
+        .role-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .role-supervisor {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+
+        .role-staff {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        /* Pulse dot */
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
+        }
+
+        /* Scan animation */
+        .scan-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00AEEF, transparent);
+            animation: scanMove 2s ease-in-out infinite;
+            top: 0;
+        }
+
+        @keyframes scanMove {
+
+            0%,
+            100% {
+                top: 10%;
+            }
+
+            50% {
+                top: 85%;
+            }
+        }
+
+        .scan-box {
+            position: relative;
+            height: 100px;
+            background: #0a1628;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #1e3a5f;
+        }
+
+        .scan-corners::before,
+        .scan-corners::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: #00AEEF;
+            border-style: solid;
+        }
+
+        .corner-tl::before {
+            top: 8px;
+            left: 8px;
+            border-width: 2px 0 0 2px;
+        }
+
+        .corner-tr::after {
+            top: 8px;
+            right: 8px;
+            border-width: 2px 2px 0 0;
+        }
+
+        .corner-bl::before {
+            bottom: 8px;
+            left: 8px;
+            border-width: 0 0 2px 2px;
+        }
+
+        .corner-br::after {
+            bottom: 8px;
+            right: 8px;
+            border-width: 0 2px 2px 0;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- ========== LOGIN SCREEN ========== -->
+    <div id="login-screen">
+        <div class="login-card">
+            <!-- Logo -->
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style="background: var(--nestle-blue);">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400 font-medium tracking-widest uppercase">Nestlé</div>
+                    <div class="text-sm font-700 text-slate-800 font-semibold leading-tight">Smart Stock Aging System
+                    </div>
+                </div>
+            </div>
+
+            <h1 class="text-2xl font-bold text-slate-900 mb-1">Welcome back</h1>
+            <p class="text-sm text-slate-500 mb-8">Sign in to access the warehouse management platform.</p>
+
+            <div class="space-y-5">
+                <div>
+                    <label class="form-label">Email Address</label>
+                    <input id="login-email" type="email" class="form-input" placeholder="you@nestle.com"
+                        autocomplete="email" />
+                </div>
+                <div>
+                    <label class="form-label">Password</label>
+                    <input id="login-password" type="password" class="form-input" placeholder="••••••••"
+                        autocomplete="current-password" />
+                </div>
+
+                <div id="login-error"
+                    class="hidden text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span id="login-error-msg"></span>
+                </div>
+
+                <button id="login-btn" onclick="authModule.login()"
+                    class="w-full py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-95"
+                    style="background: linear-gradient(135deg, var(--nestle-blue), var(--nestle-light-blue));">
+                    <span id="login-btn-text">Sign In</span>
+                    <div id="login-spinner" class="spinner hidden"></div>
+                </button>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-slate-100">
+                <p class="text-xs text-slate-400 text-center">Demo credentials · <span
+                        class="mono text-slate-500">supervisor@nestle.com</span> / <span
+                        class="mono text-slate-500">nestle123</span></p>
+                <p class="text-xs text-slate-400 text-center mt-1">Staff: <span
+                        class="mono text-slate-500">staff@nestle.com</span> / <span
+                        class="mono text-slate-500">nestle123</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== DASHBOARD SHELL ========== -->
+    <div id="app-shell" class="hidden flex h-screen overflow-hidden">
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class="flex-shrink-0 h-full flex flex-col overflow-hidden"
+            style="background: #0a1628; width: var(--sidebar-w);">
+            <!-- Logo -->
+            <div class="px-5 py-6 border-b border-white/5">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center"
+                        style="background: var(--nestle-accent);">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-white font-semibold text-sm leading-tight">Nestlé SSAMS</div>
+                        <div class="text-slate-500 text-xs">v1.0 — Sprint 1</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nav -->
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <div class="text-slate-600 text-xs font-600 uppercase tracking-widest px-3 mb-3 font-semibold">Workspace
+                </div>
+                <div class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Dashboard
+                </div>
+                <div class="nav-item" onclick="navigate('batches')" data-page="batches">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                    </svg>
+                    Batch Database
+                </div>
+                <div class="nav-item" onclick="navigate('scan')" data-page="scan">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.24M16.24 12l-.88-2.12M16.24 12l.88 2.12M12 12l-4.24-5M12 12l-4.24 5M3 12h2m0 0l.88-2.12M5 12l-.88 2.12M12 20v-4" />
+                        <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="1.5" />
+                    </svg>
+                    Barcode Scan
+                </div>
+                <div class="nav-item" onclick="navigate('dispatch')" data-page="dispatch">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    FEFO Dispatch
+                </div>
+                <div class="nav-item" onclick="navigate('orders')" data-page="orders">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Dispatch Orders
+                </div>
+            </nav>
+
+            <!-- User footer -->
+            <div class="p-4 border-t border-white/5">
+                <div class="flex items-center gap-3 px-2">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                        style="background: var(--nestle-accent);" id="sidebar-avatar">?</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-white text-xs font-medium truncate" id="sidebar-name">Loading...</div>
+                        <div id="sidebar-role-chip" class="mt-0.5"></div>
+                    </div>
+                    <button onclick="authModule.logout()" title="Sign Out"
+                        class="text-slate-500 hover:text-red-400 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+            <!-- Header -->
+            <header
+                class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
+                <div>
+                    <h2 id="page-title" class="text-base font-semibold text-slate-900">Dashboard</h2>
+                    <p id="page-subtitle" class="text-xs text-slate-400">Warehouse overview and metrics</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div
+                        class="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
+                        <div class="pulse-dot"></div>
+                        <span>Live · Firestore</span>
+                    </div>
+                    <div class="text-xs text-slate-400 mono" id="header-datetime"></div>
+                </div>
+            </header>
+
+            <!-- Scrollable content -->
+            <main class="flex-1 overflow-y-auto p-6">
+
+                <!-- ===== PAGE: DASHBOARD ===== -->
+                <div id="page-dashboard" class="page active space-y-6">
+                    <!-- Stats row -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="stat-card">
+                            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-3">Total Batches
+                            </div>
+                            <div class="text-3xl font-bold text-slate-900" id="stat-total-batches">—</div>
+                            <div class="text-xs text-slate-400 mt-1">In system</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-3">Compliant
+                            </div>
+                            <div class="text-3xl font-bold text-green-600" id="stat-compliant">—</div>
+                            <div class="text-xs text-slate-400 mt-1">MRSL ≥ 20%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-3">At Risk</div>
+                            <div class="text-3xl font-bold text-amber-500" id="stat-atrisk">—</div>
+                            <div class="text-xs text-slate-400 mt-1">MRSL &lt; 20% or &lt;30d</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-3">Dispatch
+                                Orders</div>
+                            <div class="text-3xl font-bold" style="color:var(--nestle-blue);" id="stat-orders">—</div>
+                            <div class="text-xs text-slate-400 mt-1">Processed</div>
+                        </div>
+                    </div>
+
+                    <!-- Recent batches mini table -->
+                    <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <h3 class="font-semibold text-slate-900 text-sm">Batch Overview</h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Sorted by expiry date (FEFO order)</p>
+                            </div>
+                            <button onclick="navigate('batches')"
+                                class="text-xs font-semibold px-4 py-2 rounded-lg text-white transition-all hover:opacity-85"
+                                style="background: var(--nestle-blue);">View All</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Batch #</th>
+                                        <th>Product</th>
+                                        <th>Expiry</th>
+                                        <th>Qty</th>
+                                        <th>Shelf Life %</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-batch-tbody">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-slate-400 py-8 text-sm">Loading batches…
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== PAGE: BATCH MANAGEMENT ===== -->
+                <div id="page-batches" class="page space-y-6">
+                    <!-- Add batch form -->
+                    <div class="bg-white rounded-2xl border border-slate-100 p-6">
+                        <h3 class="font-semibold text-slate-900 mb-1">Add New Batch</h3>
+                        <p class="text-xs text-slate-400 mb-5">Register a product batch with manufacturing and expiry
+                            dates.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="form-label">Batch Number <span class="text-red-400">*</span></label>
+                                <input id="batch-number" type="text" class="form-input"
+                                    placeholder="e.g. NES-2024-001" />
+                            </div>
+                            <div>
+                                <label class="form-label">Product Name <span class="text-red-400">*</span></label>
+                                <input id="batch-product" type="text" class="form-input"
+                                    placeholder="e.g. Nescafé Gold 200g" />
+                            </div>
+                            <div>
+                                <label class="form-label">Quantity (units) <span class="text-red-400">*</span></label>
+                                <input id="batch-qty" type="number" class="form-input" placeholder="500" min="1" />
+                            </div>
+                            <div>
+                                <label class="form-label">Manufacturing Date <span class="text-red-400">*</span></label>
+                                <input id="batch-mfg" type="date" class="form-input" />
+                            </div>
+                            <div>
+                                <label class="form-label">Expiry Date <span class="text-red-400">*</span></label>
+                                <input id="batch-exp" type="date" class="form-input" />
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="batchModule.addBatch()" id="add-batch-btn"
+                                    class="w-full py-2.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all"
+                                    style="background: linear-gradient(135deg, var(--nestle-blue), var(--nestle-light-blue));">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add Batch
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Batch table -->
+                    <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <h3 class="font-semibold text-slate-900 text-sm">All Batches</h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Real-time from Firestore</p>
+                            </div>
+                            <div class="text-xs font-semibold text-slate-400 bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-200"
+                                id="batch-count-label">Loading…</div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Batch #</th>
+                                        <th>Product</th>
+                                        <th>Mfg Date</th>
+                                        <th>Expiry Date</th>
+                                        <th>Days Left</th>
+                                        <th>Qty</th>
+                                        <th>Shelf Life</th>
+                                        <th>MRSL Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="batch-tbody">
+                                    <tr>
+                                        <td colspan="8" class="text-center text-slate-400 py-8 text-sm">Loading batches…
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== PAGE: BARCODE SCAN ===== -->
+                <div id="page-scan" class="page">
+                    <div class="max-w-xl mx-auto space-y-5">
+                        <!-- Scanner UI -->
+                        <div class="bg-white rounded-2xl border border-slate-100 p-6">
+                            <h3 class="font-semibold text-slate-900 mb-1">Barcode Scanner</h3>
+                            <p class="text-xs text-slate-400 mb-5">Type or paste a Batch Number / Barcode ID to look up
+                                a batch in real-time.</p>
+
+                            <!-- Scan visualizer -->
+                            <div class="scan-box scan-corners corner-tl corner-tr corner-bl corner-br mb-5">
+                                <div class="scan-line"></div>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="text-slate-500 text-xs mono text-center px-4" id="scan-vis-text">
+                                        Awaiting scan input…</div>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <input id="scan-input" type="text" class="form-input" placeholder="e.g. NES-2024-001"
+                                    onkeydown="if(event.key==='Enter') scanModule.scan()" />
+                                <button onclick="scanModule.scan()" id="scan-btn"
+                                    class="px-6 py-2.5 rounded-xl text-white font-semibold text-sm whitespace-nowrap flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all"
+                                    style="background: var(--nestle-accent);">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5H7a2 2 0 00-2 2v6m14-4V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                    Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Scan Result -->
+                        <div id="scan-result" class="hidden bg-white rounded-2xl border border-slate-100 p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="font-semibold text-slate-900">Batch Details</h4>
+                                <div id="scan-result-badge"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3" id="scan-result-grid"></div>
+                            <div id="scan-mrsl-info" class="mt-4 p-4 rounded-xl text-sm font-medium"></div>
+                        </div>
+
+                        <div id="scan-error"
+                            class="hidden bg-red-50 border border-red-200 rounded-2xl p-5 text-sm text-red-700 flex items-center gap-3">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span id="scan-error-msg">Batch not found.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== PAGE: FEFO DISPATCH ===== -->
+                <div id="page-dispatch" class="page space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Dispatch form -->
+                        <div class="bg-white rounded-2xl border border-slate-100 p-6">
+                            <h3 class="font-semibold text-slate-900 mb-1">New Dispatch Order</h3>
+                            <p class="text-xs text-slate-400 mb-5">The system will automatically select batches using
+                                FEFO and validate MRSL compliance.</p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="form-label">Retailer / Destination <span
+                                            class="text-red-400">*</span></label>
+                                    <input id="dispatch-retailer" type="text" class="form-input"
+                                        placeholder="e.g. Metro Supermarkets — Colombo" />
+                                </div>
+                                <div>
+                                    <label class="form-label">Product Name <span class="text-red-400">*</span></label>
+                                    <input id="dispatch-product" type="text" class="form-input"
+                                        placeholder="e.g. Nescafé Gold 200g" />
+                                </div>
+                                <div>
+                                    <label class="form-label">Quantity Required (units) <span
+                                            class="text-red-400">*</span></label>
+                                    <input id="dispatch-qty" type="number" class="form-input" placeholder="200"
+                                        min="1" />
+                                </div>
+                                <div>
+                                    <label class="form-label">MRSL Threshold (days)</label>
+                                    <input id="dispatch-mrsl-days" type="number" class="form-input" value="30"
+                                        min="1" />
+                                    <p class="text-xs text-slate-400 mt-1.5">Minimum days remaining before expiry (also
+                                        checks 20% shelf life rule)</p>
+                                </div>
+                                <button onclick="dispatchModule.processDispatch()" id="dispatch-btn"
+                                    class="w-full py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all"
+                                    style="background: linear-gradient(135deg, var(--nestle-blue), var(--nestle-light-blue));">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Process FEFO Dispatch
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Dispatch result panel -->
+                        <div class="bg-white rounded-2xl border border-slate-100 p-6">
+                            <h3 class="font-semibold text-slate-900 mb-1">Dispatch Validation Result</h3>
+                            <p class="text-xs text-slate-400 mb-4">Results of FEFO selection + MRSL compliance check</p>
+                            <div id="dispatch-result-area">
+                                <div class="flex flex-col items-center justify-center h-48 text-slate-300">
+                                    <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                    <p class="text-sm">No dispatch processed yet</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FEFO explanation -->
+                    <div class="bg-white rounded-2xl border border-slate-100 p-6">
+                        <h3 class="font-semibold text-slate-900 mb-3">FEFO + MRSL Rules</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div class="bg-blue-50 rounded-xl p-4">
+                                <div class="font-semibold text-blue-800 mb-1">📦 FEFO Rule</div>
+                                <p class="text-blue-700 text-xs leading-relaxed">First Expiring, First Out — batches
+                                    with the earliest expiry dates are selected first for dispatch, minimizing waste.
+                                </p>
+                            </div>
+                            <div class="bg-amber-50 rounded-xl p-4">
+                                <div class="font-semibold text-amber-800 mb-1">⏱ MRSL Rule</div>
+                                <p class="text-amber-700 text-xs leading-relaxed">Minimum Remaining Shelf Life — a batch
+                                    must have ≥ 20% of its total shelf life remaining AND ≥ 30 days to expiry
+                                    (configurable) to be approved for dispatch.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== PAGE: DISPATCH ORDERS ===== -->
+                <div id="page-orders" class="page space-y-6">
+                    <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100">
+                            <h3 class="font-semibold text-slate-900 text-sm">All Dispatch Orders</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Historical record of FEFO dispatch validations</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Retailer</th>
+                                        <th>Product</th>
+                                        <th>Qty Req.</th>
+                                        <th>Batches Used</th>
+                                        <th>Status</th>
+                                        <th>Processed At</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-tbody">
+                                    <tr>
+                                        <td colspan="7" class="text-center text-slate-400 py-8 text-sm">Loading orders…
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // ══════════════════════════════════════════════
+        // STEP 1 — Firebase Configuration
+        // Replace the values below with your own Firebase project config
+        // ══════════════════════════════════════════════
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ══════════════════════════════════════════════════════════
+        // FIRESTORE SCHEMA (NoSQL Document Structure)
+        //
+        // Collection: users
+        //   Document: {uid}
+        //     - displayName: string
+        //     - email: string
+        //     - role: "Warehouse Supervisor" | "Warehouse Staff"
+        //     - createdAt: timestamp
+        //
+        // Collection: batches
+        //   Document: {auto-id}
+        //     - batchNumber: string (unique identifier)
+        //     - productName: string
+        //     - manufacturingDate: timestamp
+        //     - expiryDate: timestamp
+        //     - quantity: number
+        //     - createdAt: timestamp
+        //     - createdBy: string (uid)
+        //
+        // Collection: dispatch_orders
+        //   Document: {auto-id}
+        //     - retailer: string
+        //     - productName: string
+        //     - quantityRequired: number
+        //     - mrslThresholdDays: number
+        //     - status: "APPROVED" | "REJECTED" | "PARTIAL"
+        //     - batchesUsed: array of { batchNumber, quantity, expiryDate, shelfLifePct }
+        //     - rejectedBatches: array of { batchNumber, reason }
+        //     - processedAt: timestamp
+        //     - processedBy: string (uid)
+        // ══════════════════════════════════════════════════════════
+
+        // ──────────────── UTILITIES ─────────────────
+        function toast(msg, type = 'info') {
+            const icons = {
+                success: `<svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`,
+                error: `<svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
+                info: `<svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+            };
+            const el = document.createElement('div');
+            el.className = `toast toast-${type}`;
+            el.innerHTML = `${icons[type] || icons.info}<div><div class="font-semibold text-xs mb-0.5">${type.charAt(0).toUpperCase() + type.slice(1)}</div><div class="text-slate-600 text-xs">${msg}</div></div>`;
+            const container = document.getElementById('toast-container');
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+
+        function daysBetween(d1, d2) {
+            return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+        }
+
+        function fmtDate(ts) {
+            if (!ts) return '—';
+            const d = ts.toDate ? ts.toDate() : new Date(ts);
+            return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function shelfLifePct(mfgDate, expDate) {
+            const mfg = mfgDate.toDate ? mfgDate.toDate() : new Date(mfgDate);
+            const exp = expDate.toDate ? expDate.toDate() : new Date(expDate);
+            const total = daysBetween(mfg, exp);
+            if (total <= 0) return 0;
+            const remaining = daysBetween(new Date(), exp);
+            return Math.max(0, Math.round((remaining / total) * 100));
+        }
+
+        function mrslStatus(batch, mrslDays = 30) {
+            const exp = batch.expiryDate.toDate ? batch.expiryDate.toDate() : new Date(batch.expiryDate);
+            const daysLeft = daysBetween(new Date(), exp);
+            const pct = shelfLifePct(batch.manufacturingDate, batch.expiryDate);
+            const passdays = daysLeft >= mrslDays;
+            const passpct = pct >= 20;
+            if (daysLeft < 0) return { ok: false, label: 'Expired', color: 'red', daysLeft, pct };
+            if (!passdays || !passpct) return { ok: false, label: 'MRSL Fail', color: 'red', daysLeft, pct };
+            if (daysLeft < mrslDays * 1.5 || pct < 35) return { ok: true, label: 'Near Limit', color: 'yellow', daysLeft, pct };
+            return { ok: true, label: 'Compliant', color: 'green', daysLeft, pct };
+        }
+
+        function shelfBar(pct) {
+            const color = pct >= 50 ? '#22c55e' : pct >= 20 ? '#f59e0b' : '#ef4444';
+            return `<div class="shelf-bar w-20"><div class="shelf-fill" style="width:${pct}%;background:${color};"></div></div>`;
+        }
+
+        function badgeHtml(label, color) {
+            const map = { green: 'badge-green', red: 'badge-red', yellow: 'badge-yellow', blue: 'badge-blue', gray: 'badge-gray' };
+            return `<span class="badge ${map[color] || 'badge-gray'}">${label}</span>`;
+        }
+
+        function setLoading(btnId, loading) {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            btn.disabled = loading;
+            btn.style.opacity = loading ? '0.7' : '1';
+        }
+
+        // ──────────────── DATETIME ─────────────────
+        function updateClock() {
+            document.getElementById('header-datetime').textContent =
+                new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ──────────────── NAVIGATION ─────────────────
+        const pageMeta = {
+            dashboard: { title: 'Dashboard', subtitle: 'Warehouse overview and metrics' },
+            batches: { title: 'Batch Database', subtitle: 'Manage product batches and expiry dates' },
+            scan: { title: 'Barcode Scanner', subtitle: 'Look up batch details by barcode / batch ID' },
+            dispatch: { title: 'FEFO Dispatch', subtitle: 'Process dispatch orders with FEFO + MRSL validation' },
+            orders: { title: 'Dispatch Orders', subtitle: 'Historical dispatch order records' },
+        };
+
+        window.navigate = function (page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(`page-${page}`).classList.add('active');
+            document.querySelector(`[data-page="${page}"]`).classList.add('active');
+            const meta = pageMeta[page] || {};
+            document.getElementById('page-title').textContent = meta.title || page;
+            document.getElementById('page-subtitle').textContent = meta.subtitle || '';
+            if (page === 'dashboard') dashboardModule.refresh();
+            if (page === 'orders') ordersModule.load();
+        };
+
+        // ──────────────── AUTH MODULE ─────────────────
+        let currentUser = null;
+        let currentUserData = null;
+
+        window.authModule = {
+            async login() {
+                const email = document.getElementById('login-email').value.trim();
+                const pwd = document.getElementById('login-password').value;
+                const errEl = document.getElementById('login-error');
+                const errMsg = document.getElementById('login-error-msg');
+                const spinner = document.getElementById('login-spinner');
+                const btnText = document.getElementById('login-btn-text');
+
+                errEl.classList.add('hidden');
+                if (!email || !pwd) {
+                    errMsg.textContent = 'Please enter your email and password.';
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+
+                spinner.classList.remove('hidden');
+                btnText.textContent = 'Signing in…';
+                setLoading('login-btn', true);
+
+                try {
+                    const cred = await signInWithEmailAndPassword(auth, email, pwd);
+                    // Fetch user role from Firestore
+                    const snap = await getDoc(doc(db, 'users', cred.user.uid));
+                    if (snap.exists()) {
+                        currentUserData = snap.data();
+                    } else {
+                        // Auto-create user record if doesn't exist
+                        currentUserData = { displayName: email.split('@')[0], email, role: 'Warehouse Staff' };
+                    }
+                    currentUser = cred.user;
+                    this.showDashboard();
+                    toast('Welcome back, ' + (currentUserData.displayName || email.split('@')[0]) + '!', 'success');
+                } catch (e) {
+                    const msgs = {
+                        'auth/user-not-found': 'No account found with this email.',
+                        'auth/wrong-password': 'Incorrect password. Please try again.',
+                        'auth/invalid-email': 'Invalid email address.',
+                        'auth/too-many-requests': 'Too many failed attempts. Please wait.',
+                        'auth/invalid-credential': 'Invalid email or password.',
+                    };
+                    errMsg.textContent = msgs[e.code] || ('Authentication failed: ' + e.message);
+                    errEl.classList.remove('hidden');
+                } finally {
+                    spinner.classList.add('hidden');
+                    btnText.textContent = 'Sign In';
+                    setLoading('login-btn', false);
+                }
+            },
+
+            async logout() {
+                await signOut(auth);
+                currentUser = null; currentUserData = null;
+                document.getElementById('app-shell').classList.add('hidden');
+                document.getElementById('login-screen').style.display = 'flex';
+                toast('Signed out successfully.', 'info');
+            },
+
+            showDashboard() {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-shell').classList.remove('hidden');
+
+                const name = currentUserData?.displayName || currentUser.email;
+                const role = currentUserData?.role || 'Warehouse Staff';
+                const avatar = (name.charAt(0) || '?').toUpperCase();
+
+                document.getElementById('sidebar-avatar').textContent = avatar;
+                document.getElementById('sidebar-name').textContent = name;
+
+                const isSupervisor = role.toLowerCase().includes('supervisor');
+                document.getElementById('sidebar-role-chip').innerHTML =
+                    `<span class="role-chip ${isSupervisor ? 'role-supervisor' : 'role-staff'}">${role}</span>`;
+
+                dashboardModule.refresh();
+                batchModule.listenBatches();
+                ordersModule.load();
+            }
+        };
+
+        // ──────────────── BATCH MODULE ─────────────────
+        let allBatches = [];
+
+        window.batchModule = {
+            async addBatch() {
+                const batchNumber = document.getElementById('batch-number').value.trim();
+                const productName = document.getElementById('batch-product').value.trim();
+                const qty = parseInt(document.getElementById('batch-qty').value);
+                const mfgRaw = document.getElementById('batch-mfg').value;
+                const expRaw = document.getElementById('batch-exp').value;
+
+                if (!batchNumber || !productName || !qty || !mfgRaw || !expRaw) {
+                    toast('All fields are required. Please fill in all batch details.', 'error'); return;
+                }
+                if (isNaN(qty) || qty < 1) { toast('Quantity must be a positive number.', 'error'); return; }
+
+                const mfgDate = new Date(mfgRaw);
+                const expDate = new Date(expRaw);
+                if (expDate <= mfgDate) { toast('Expiry date must be after manufacturing date.', 'error'); return; }
+
+                setLoading('add-batch-btn', true);
+                try {
+                    await addDoc(collection(db, 'batches'), {
+                        batchNumber, productName,
+                        manufacturingDate: Timestamp.fromDate(mfgDate),
+                        expiryDate: Timestamp.fromDate(expDate),
+                        quantity: qty,
+                        createdAt: serverTimestamp(),
+                        createdBy: currentUser?.uid || 'demo'
+                    });
+                    // Clear form
+                    ['batch-number', 'batch-product', 'batch-qty', 'batch-mfg', 'batch-exp'].forEach(id => document.getElementById(id).value = '');
+                    toast(`Batch "${batchNumber}" added successfully!`, 'success');
+                } catch (e) {
+                    toast('Error saving batch: ' + e.message, 'error');
+                } finally {
+                    setLoading('add-batch-btn', false);
+                }
+            },
+
+            listenBatches() {
+                const q = query(collection(db, 'batches'), orderBy('expiryDate', 'asc'));
+                onSnapshot(q, (snap) => {
+                    allBatches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    this.renderTable(allBatches);
+                    dashboardModule.updateStats(allBatches);
+                    document.getElementById('batch-count-label').textContent = `${allBatches.length} batch${allBatches.length !== 1 ? 'es' : ''}`;
+                }, (err) => {
+                    toast('Firestore error: ' + err.message, 'error');
+                });
+            },
+
+            renderTable(batches) {
+                const tbody = document.getElementById('batch-tbody');
+                if (!batches.length) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-slate-400 py-8 text-sm">No batches found. Add your first batch above.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = batches.map(b => {
+                    const ms = mrslStatus(b);
+                    const pct = shelfLifePct(b.manufacturingDate, b.expiryDate);
+                    return `<tr>
+          <td><span class="mono text-xs font-medium text-slate-700">${b.batchNumber}</span></td>
+          <td>${b.productName}</td>
+          <td class="text-slate-500 text-xs">${fmtDate(b.manufacturingDate)}</td>
+          <td class="text-slate-500 text-xs">${fmtDate(b.expiryDate)}</td>
+          <td class="mono text-xs font-medium ${ms.daysLeft < 30 ? 'text-red-600' : ms.daysLeft < 60 ? 'text-amber-600' : 'text-slate-600'}">${ms.daysLeft < 0 ? 'Expired' : ms.daysLeft + 'd'}</td>
+          <td class="font-medium">${b.quantity.toLocaleString()}</td>
+          <td><div class="flex items-center gap-2">${shelfBar(pct)}<span class="text-xs text-slate-500">${pct}%</span></div></td>
+          <td>${badgeHtml(ms.label, ms.color)}</td>
+        </tr>`;
+                }).join('');
+            }
+        };
+
+        // ──────────────── SCAN MODULE ─────────────────
+        window.scanModule = {
+            async scan() {
+                const input = document.getElementById('scan-input').value.trim();
+                const resultEl = document.getElementById('scan-result');
+                const errorEl = document.getElementById('scan-error');
+                const visText = document.getElementById('scan-vis-text');
+
+                resultEl.classList.add('hidden');
+                errorEl.classList.add('hidden');
+
+                if (!input) { toast('Please enter a barcode or batch number.', 'error'); return; }
+
+                visText.textContent = `Scanning: ${input}…`;
+                setLoading('scan-btn', true);
+
+                // Search batches collection for matching batchNumber
+                const batch = allBatches.find(b => b.batchNumber.toLowerCase() === input.toLowerCase());
+
+                await new Promise(r => setTimeout(r, 600)); // simulate scan delay
+
+                if (!batch) {
+                    visText.textContent = `❌ Not found: ${input}`;
+                    document.getElementById('scan-error-msg').textContent = `No batch found with ID "${input}". Please verify the barcode and try again.`;
+                    errorEl.classList.remove('hidden');
+                    setLoading('scan-btn', false);
+                    return;
+                }
+
+                visText.textContent = `✅ Matched: ${batch.batchNumber}`;
+                const ms = mrslStatus(batch);
+                const pct = shelfLifePct(batch.manufacturingDate, batch.expiryDate);
+
+                document.getElementById('scan-result-badge').innerHTML = badgeHtml(ms.label, ms.color);
+
+                const fields = [
+                    ['Batch Number', `<span class="mono font-medium">${batch.batchNumber}</span>`],
+                    ['Product', batch.productName],
+                    ['Mfg Date', fmtDate(batch.manufacturingDate)],
+                    ['Expiry Date', fmtDate(batch.expiryDate)],
+                    ['Days Remaining', ms.daysLeft < 0 ? '<span class="text-red-600 font-semibold">EXPIRED</span>' : `<span class="font-semibold ${ms.daysLeft < 30 ? 'text-red-600' : 'text-slate-800'}">${ms.daysLeft} days</span>`],
+                    ['Quantity', batch.quantity.toLocaleString() + ' units'],
+                    ['Shelf Life Remaining', `<div class="flex items-center gap-2">${shelfBar(pct)}<span class="text-xs">${pct}%</span></div>`],
+                ];
+
+                document.getElementById('scan-result-grid').innerHTML = fields.map(([k, v]) =>
+                    `<div class="bg-slate-50 rounded-lg p-3"><div class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">${k}</div><div class="text-sm text-slate-800">${v}</div></div>`
+                ).join('');
+
+                const mrslEl = document.getElementById('scan-mrsl-info');
+                if (ms.ok) {
+                    mrslEl.className = 'mt-4 p-4 rounded-xl text-sm font-medium bg-green-50 border border-green-200 text-green-800';
+                    mrslEl.textContent = `✅ MRSL Compliant — This batch meets shelf life requirements and is cleared for dispatch.`;
+                } else {
+                    mrslEl.className = 'mt-4 p-4 rounded-xl text-sm font-medium bg-red-50 border border-red-200 text-red-800';
+                    mrslEl.textContent = ms.daysLeft < 0
+                        ? '❌ EXPIRED — This batch has expired and must not be dispatched.'
+                        : `❌ MRSL Violation — Shelf life remaining (${pct}%) or days left (${ms.daysLeft}d) is below the minimum threshold. DO NOT DISPATCH.`;
+                }
+
+                resultEl.classList.remove('hidden');
+                setLoading('scan-btn', false);
+            }
+        };
+
+        // ──────────────── DISPATCH MODULE ─────────────────
+        window.dispatchModule = {
+            async processDispatch() {
+                const retailer = document.getElementById('dispatch-retailer').value.trim();
+                const product = document.getElementById('dispatch-product').value.trim();
+                const qtyNeeded = parseInt(document.getElementById('dispatch-qty').value);
+                const mrslDays = parseInt(document.getElementById('dispatch-mrsl-days').value) || 30;
+
+                if (!retailer || !product || !qtyNeeded || qtyNeeded < 1) {
+                    toast('Please fill all dispatch fields correctly.', 'error'); return;
+                }
+
+                setLoading('dispatch-btn', true);
+
+                // Filter product batches, sort by expiry ASC (FEFO)
+                const productBatches = allBatches
+                    .filter(b => b.productName.toLowerCase().includes(product.toLowerCase()))
+                    .sort((a, b) => {
+                        const da = a.expiryDate.toDate ? a.expiryDate.toDate() : new Date(a.expiryDate);
+                        const db2 = b.expiryDate.toDate ? b.expiryDate.toDate() : new Date(b.expiryDate);
+                        return da - db2;
+                    });
+
+                const resultArea = document.getElementById('dispatch-result-area');
+
+                if (!productBatches.length) {
+                    resultArea.innerHTML = `<div class="dispatch-result dispatch-rejected"><div class="flex items-center gap-2 text-red-700 font-semibold mb-2">❌ No Batches Found</div><p class="text-red-600 text-sm">No batches found matching "${product}". Please verify the product name.</p></div>`;
+                    setLoading('dispatch-btn', false);
+                    return;
+                }
+
+                let remaining = qtyNeeded;
+                const approved = [], rejected = [];
+
+                for (const batch of productBatches) {
+                    if (remaining <= 0) break;
+                    const ms = mrslStatus(batch, mrslDays);
+                    const pct = shelfLifePct(batch.manufacturingDate, batch.expiryDate);
+
+                    if (!ms.ok) {
+                        rejected.push({ batch, reason: ms.daysLeft < 0 ? 'Expired' : `MRSL Fail (${pct}% shelf life, ${ms.daysLeft}d left)` });
+                        continue;
+                    }
+                    const take = Math.min(batch.quantity, remaining);
+                    approved.push({ batch, take, pct, daysLeft: ms.daysLeft });
+                    remaining -= take;
+                }
+
+                const fulfilled = qtyNeeded - remaining;
+                const status = remaining <= 0 ? 'APPROVED' : (fulfilled > 0 ? 'PARTIAL' : 'REJECTED');
+
+                // Save to Firestore
+                try {
+                    await addDoc(collection(db, 'dispatch_orders'), {
+                        retailer, productName: product,
+                        quantityRequired: qtyNeeded,
+                        quantityFulfilled: fulfilled,
+                        mrslThresholdDays: mrslDays,
+                        status,
+                        batchesUsed: approved.map(a => ({ batchNumber: a.batch.batchNumber, quantity: a.take, expiryDate: a.batch.expiryDate, shelfLifePct: a.pct })),
+                        rejectedBatches: rejected.map(r => ({ batchNumber: r.batch.batchNumber, reason: r.reason })),
+                        processedAt: serverTimestamp(),
+                        processedBy: currentUser?.uid || 'demo'
+                    });
+                } catch (e) {
+                    toast('Could not save dispatch order: ' + e.message, 'error');
+                }
+
+                // Render result
+                const statusColors = { APPROVED: 'green', PARTIAL: 'yellow', REJECTED: 'red' };
+                const statusIcons = { APPROVED: '✅', PARTIAL: '⚠️', REJECTED: '❌' };
+
+                let html = `
+        <div class="mb-4 flex items-center justify-between">
+          ${badgeHtml(`${statusIcons[status]} ${status}`, statusColors[status])}
+          <span class="text-xs text-slate-400 mono">${new Date().toLocaleTimeString()}</span>
+        </div>
+        <div class="text-sm text-slate-600 mb-4">Fulfilling <strong>${qtyNeeded.toLocaleString()} units</strong> of <strong>${product}</strong> for <strong>${retailer}</strong></div>
+      `;
+
+                if (approved.length) {
+                    html += `<div class="dispatch-result dispatch-approved mb-3">
+          <div class="text-green-700 font-semibold text-sm mb-2">✅ Approved Batches (FEFO Order)</div>
+          ${approved.map(a => `
+            <div class="flex items-center justify-between text-xs py-1.5 border-b border-green-200 last:border-0">
+              <span class="mono font-medium text-green-800">${a.batch.batchNumber}</span>
+              <span class="text-green-700">${a.take} units · ${a.daysLeft}d left · ${a.pct}% shelf life</span>
+            </div>`).join('')}
+          <div class="mt-2 text-xs text-green-600 font-semibold">Total dispatched: ${fulfilled.toLocaleString()} / ${qtyNeeded.toLocaleString()} units</div>
+        </div>`;
+                }
+
+                if (rejected.length) {
+                    html += `<div class="dispatch-result dispatch-rejected">
+          <div class="text-red-700 font-semibold text-sm mb-2">❌ Rejected Batches (MRSL Violation)</div>
+          ${rejected.map(r => `
+            <div class="flex items-center justify-between text-xs py-1.5 border-b border-red-200 last:border-0">
+              <span class="mono font-medium text-red-800">${r.batch.batchNumber}</span>
+              <span class="text-red-600">${r.reason}</span>
+            </div>`).join('')}
+        </div>`;
+                }
+
+                if (remaining > 0) {
+                    html += `<div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 font-medium">⚠️ Shortfall: ${remaining.toLocaleString()} units could not be fulfilled due to insufficient compliant stock.</div>`;
+                }
+
+                resultArea.innerHTML = html;
+                toast(`Dispatch ${status.toLowerCase()}: ${fulfilled}/${qtyNeeded} units fulfilled.`, status === 'APPROVED' ? 'success' : status === 'PARTIAL' ? 'info' : 'error');
+                setLoading('dispatch-btn', false);
+            }
+        };
+
+        // ──────────────── DASHBOARD MODULE ─────────────────
+        window.dashboardModule = {
+            updateStats(batches) {
+                const compliant = batches.filter(b => mrslStatus(b).ok).length;
+                const atRisk = batches.length - compliant;
+                document.getElementById('stat-total-batches').textContent = batches.length;
+                document.getElementById('stat-compliant').textContent = compliant;
+                document.getElementById('stat-atrisk').textContent = atRisk;
+
+                // Mini table
+                const tbody = document.getElementById('dashboard-batch-tbody');
+                const top = batches.slice(0, 8);
+                if (!top.length) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-slate-400 py-8 text-sm">No batches yet.</td></tr>`; return; }
+                tbody.innerHTML = top.map(b => {
+                    const ms = mrslStatus(b);
+                    const pct = shelfLifePct(b.manufacturingDate, b.expiryDate);
+                    return `<tr>
+          <td><span class="mono text-xs">${b.batchNumber}</span></td>
+          <td class="text-sm">${b.productName}</td>
+          <td class="text-xs text-slate-500">${fmtDate(b.expiryDate)}</td>
+          <td class="text-sm font-medium">${b.quantity.toLocaleString()}</td>
+          <td><div class="flex items-center gap-2">${shelfBar(pct)}<span class="text-xs text-slate-500">${pct}%</span></div></td>
+          <td>${badgeHtml(ms.label, ms.color)}</td>
+        </tr>`;
+                }).join('');
+            },
+
+            async refresh() {
+                try {
+                    const snap = await getDocs(collection(db, 'dispatch_orders'));
+                    document.getElementById('stat-orders').textContent = snap.size;
+                } catch (e) { }
+                this.updateStats(allBatches);
+            }
+        };
+
+        // ──────────────── ORDERS MODULE ─────────────────
+        window.ordersModule = {
+            async load() {
+                const tbody = document.getElementById('orders-tbody');
+                try {
+                    const q = query(collection(db, 'dispatch_orders'), orderBy('processedAt', 'desc'));
+                    const snap = await getDocs(q);
+                    if (snap.empty) {
+                        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-slate-400 py-8 text-sm">No dispatch orders yet.</td></tr>`;
+                        document.getElementById('stat-orders').textContent = 0;
+                        return;
+                    }
+                    document.getElementById('stat-orders').textContent = snap.size;
+                    tbody.innerHTML = snap.docs.map(d => {
+                        const o = d.data();
+                        const statusColors = { APPROVED: 'green', PARTIAL: 'yellow', REJECTED: 'red' };
+                        const batches = (o.batchesUsed || []).map(b => b.batchNumber).join(', ') || '—';
+                        const ts = o.processedAt ? fmtDate(o.processedAt) : '—';
+                        return `<tr>
+            <td><span class="mono text-xs">${d.id.slice(0, 8)}…</span></td>
+            <td class="text-sm">${o.retailer}</td>
+            <td class="text-sm">${o.productName}</td>
+            <td class="mono text-xs">${o.quantityRequired}</td>
+            <td class="mono text-xs text-slate-500" title="${batches}">${batches.length > 30 ? batches.slice(0, 30) + '…' : batches}</td>
+            <td>${badgeHtml(o.status, statusColors[o.status] || 'gray')}</td>
+            <td class="text-xs text-slate-400">${ts}</td>
+          </tr>`;
+                    }).join('');
+                } catch (e) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red-400 py-8 text-sm">Error loading orders: ${e.message}</td></tr>`;
+                }
+            }
+        };
+
+        // ──────────────── AUTH STATE LISTENER ─────────────────
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                try {
+                    const snap = await getDoc(doc(db, 'users', user.uid));
+                    currentUserData = snap.exists() ? snap.data() : { displayName: user.email.split('@')[0], email: user.email, role: 'Warehouse Staff' };
+                } catch {
+                    currentUserData = { displayName: user.email.split('@')[0], email: user.email, role: 'Warehouse Staff' };
+                }
+                authModule.showDashboard();
+            }
+        });
+    </script>
+</body>
+
+</html>
