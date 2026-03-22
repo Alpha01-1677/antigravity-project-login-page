@@ -361,71 +361,225 @@
             }
         }
 
-        /* Scan animation */
-        .scan-line {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #00AEEF, transparent);
-            animation: scanMove 2s ease-in-out infinite;
-            top: 0;
-        }
+        /* ===== SCANNER MODULE STYLES ===== */
 
-        @keyframes scanMove {
-
-            0%,
-            100% {
-                top: 10%;
-            }
-
-            50% {
-                top: 85%;
-            }
-        }
-
-        .scan-box {
+        /* Outer viewport container */
+        .scan-viewport {
             position: relative;
-            height: 100px;
-            background: #0a1628;
-            border-radius: 10px;
+            width: 100%;
+            aspect-ratio: 16/9;
+            max-height: 320px;
+            background: #050d1a;
+            border-radius: 14px;
             overflow: hidden;
             border: 2px solid #1e3a5f;
+            box-shadow: 0 0 0 1px rgba(0,174,239,0.15), 0 8px 32px rgba(0,0,0,0.4);
         }
 
-        .scan-corners::before,
-        .scan-corners::after {
+        /* Live camera video */
+        #scan-video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        /* QuaggaJS canvas container */
+        #scan-quagga-container {
+            position: absolute;
+            inset: 0;
+            display: none;
+        }
+        #scan-quagga-container canvas,
+        #scan-quagga-container video {
+            position: absolute;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+        }
+
+        /* Animated sweep line */
+        .scan-sweep {
+            position: absolute;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, transparent 0%, #00AEEF 30%, #fff 50%, #00AEEF 70%, transparent 100%);
+            box-shadow: 0 0 10px 2px rgba(0,174,239,0.7);
+            animation: sweepMove 2.2s ease-in-out infinite;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        @keyframes sweepMove {
+            0%   { top: 12%; opacity: 0; }
+            8%   { opacity: 1; }
+            92%  { opacity: 1; }
+            100% { top: 86%; opacity: 0; }
+        }
+
+        /* Corner bracket marks */
+        .scan-corner {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .scan-corner::before,
+        .scan-corner::after {
             content: '';
             position: absolute;
-            width: 20px;
-            height: 20px;
-            border-color: #00AEEF;
-            border-style: solid;
+            background: #00AEEF;
+            box-shadow: 0 0 6px rgba(0,174,239,0.8);
+        }
+        .scan-corner-tl { top: 12px; left: 12px; }
+        .scan-corner-tr { top: 12px; right: 12px; }
+        .scan-corner-bl { bottom: 12px; left: 12px; }
+        .scan-corner-br { bottom: 12px; right: 12px; }
+
+        .scan-corner-tl::before { top:0; left:0; width:3px; height:22px; border-radius:2px; }
+        .scan-corner-tl::after  { top:0; left:0; width:22px; height:3px; border-radius:2px; }
+        .scan-corner-tr::before { top:0; right:0; width:3px; height:22px; border-radius:2px; }
+        .scan-corner-tr::after  { top:0; right:0; width:22px; height:3px; border-radius:2px; }
+        .scan-corner-bl::before { bottom:0; left:0; width:3px; height:22px; border-radius:2px; }
+        .scan-corner-bl::after  { bottom:0; left:0; width:22px; height:3px; border-radius:2px; }
+        .scan-corner-br::before { bottom:0; right:0; width:3px; height:22px; border-radius:2px; }
+        .scan-corner-br::after  { bottom:0; right:0; width:22px; height:3px; border-radius:2px; }
+
+        /* Idle placeholder inside viewport */
+        .scan-idle-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .scan-idle-icon {
+            width: 48px;
+            height: 48px;
+            opacity: 0.25;
+        }
+        .scan-idle-text {
+            font-size: 12px;
+            color: #475569;
+            font-family: 'DM Mono', monospace;
+            text-align: center;
+            line-height: 1.6;
+            padding: 0 24px;
         }
 
-        .corner-tl::before {
-            top: 8px;
-            left: 8px;
-            border-width: 2px 0 0 2px;
-        }
-
-        .corner-tr::after {
+        /* Engine badge (top-right of viewport) */
+        .engine-badge {
+            position: absolute;
             top: 8px;
             right: 8px;
-            border-width: 2px 2px 0 0;
+            z-index: 6;
+            display: none;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            color: #00AEEF;
+            border: 1px solid rgba(0,174,239,0.35);
+        }
+        .engine-badge.visible { display: flex; }
+        .engine-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #00AEEF;
+            box-shadow: 0 0 5px #00AEEF;
+            animation: pulse 1.5s infinite;
         }
 
-        .corner-bl::before {
-            bottom: 8px;
-            left: 8px;
-            border-width: 0 0 2px 2px;
+        /* Status bar below viewport */
+        .scan-status-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            min-height: 36px;
+        }
+        .scan-status-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+            background: #94a3b8;
+        }
+        .scan-status-dot.active {
+            background: #22c55e;
+            box-shadow: 0 0 0 0 rgba(34,197,94,0.4);
+            animation: pulse 2s infinite;
+        }
+        .scan-status-dot.error { background: #ef4444; }
+
+        /* Camera control buttons */
+        .cam-btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 9px 18px; border-radius: 10px;
+            font-size: 13px; font-weight: 600;
+            cursor: pointer; border: none; transition: all 0.2s;
+        }
+        .cam-btn-start {
+            background: linear-gradient(135deg, #003087, #0057B8);
+            color: #fff;
+        }
+        .cam-btn-start:hover { opacity: 0.88; transform: translateY(-1px); }
+        .cam-btn-stop {
+            background: #fee2e2; color: #b91c1c;
+        }
+        .cam-btn-stop:hover { background: #fecaca; }
+        .cam-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+        /* Result card enter animation */
+        .result-enter {
+            animation: resultSlideIn 0.35s cubic-bezier(0.22,1,0.36,1);
+        }
+        @keyframes resultSlideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
-        .corner-br::after {
-            bottom: 8px;
-            right: 8px;
-            border-width: 0 2px 2px 0;
+        /* MRSL verdict banners */
+        .mrsl-pass {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border: 1px solid #86efac;
+            color: #166534;
         }
+        .mrsl-warn {
+            background: linear-gradient(135deg, #fffbeb, #fef9c3);
+            border: 1px solid #fde047;
+            color: #854d0e;
+        }
+        .mrsl-fail {
+            background: linear-gradient(135deg, #fff1f2, #fee2e2);
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+
+        /* Dispatch match chip */
+        .dispatch-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 999px;
+            font-size: 11px; font-weight: 600;
+        }
+        .dispatch-chip-match   { background: #dbeafe; color: #1d4ed8; }
+        .dispatch-chip-nomatch { background: #f1f5f9; color: #64748b; }
     </style>
 </head>
 
@@ -745,55 +899,167 @@
 
                 <!-- ===== PAGE: BARCODE SCAN ===== -->
                 <div id="page-scan" class="page">
-                    <div class="max-w-xl mx-auto space-y-5">
-                        <!-- Scanner UI -->
-                        <div class="bg-white rounded-2xl border border-slate-100 p-6">
-                            <h3 class="font-semibold text-slate-900 mb-1">Barcode Scanner</h3>
-                            <p class="text-xs text-slate-400 mb-5">Type or paste a Batch Number / Barcode ID to look up
-                                a batch in real-time.</p>
+                    <div class="max-w-2xl mx-auto space-y-5">
 
-                            <!-- Scan visualizer -->
-                            <div class="scan-box scan-corners corner-tl corner-tr corner-bl corner-br mb-5">
-                                <div class="scan-line"></div>
-                                <div class="absolute inset-0 flex items-center justify-center">
-                                    <div class="text-slate-500 text-xs mono text-center px-4" id="scan-vis-text">
-                                        Awaiting scan input…</div>
+                        <!-- ── Camera Scanner Card ── -->
+                        <div class="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <h3 class="font-semibold text-slate-900">Barcode Scanner</h3>
+                                    <p class="text-xs text-slate-400 mt-0.5">Point camera at a barcode, or type the batch number below.</p>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-200">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                    </svg>
+                                    PB3 · Dual-Engine
                                 </div>
                             </div>
 
+                            <!-- Camera Viewport -->
+                            <div class="scan-viewport" id="scan-viewport">
+                                <!-- Live video feed (native BarcodeDetector) -->
+                                <video id="scan-video" playsinline muted autoplay></video>
+
+                                <!-- QuaggaJS canvas container -->
+                                <div id="scan-quagga-container"></div>
+
+                                <!-- Animated sweep line -->
+                                <div class="scan-sweep" id="scan-sweep"></div>
+
+                                <!-- Corner brackets -->
+                                <div class="scan-corner scan-corner-tl"></div>
+                                <div class="scan-corner scan-corner-tr"></div>
+                                <div class="scan-corner scan-corner-bl"></div>
+                                <div class="scan-corner scan-corner-br"></div>
+
+                                <!-- Engine badge -->
+                                <div class="engine-badge" id="engine-badge">
+                                    <div class="engine-dot"></div>
+                                    <span id="engine-label">Native API</span>
+                                </div>
+
+                                <!-- Idle overlay (hidden when camera is on) -->
+                                <div class="scan-idle-overlay" id="scan-idle-overlay">
+                                    <svg class="scan-idle-icon" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.24M16.24 12l-.88-2.12M16.24 12l.88 2.12M12 12l-4.24-5M12 12l-4.24 5M3 12h2"/>
+                                        <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="1.5"/>
+                                    </svg>
+                                    <div class="scan-idle-text">Camera is off<br>Click <strong>Start Camera</strong> to activate scanner</div>
+                                </div>
+                            </div>
+
+                            <!-- Status bar -->
+                            <div class="scan-status-bar" id="scan-status-bar">
+                                <div class="scan-status-dot" id="scan-status-dot"></div>
+                                <span id="scan-status-text" class="text-slate-500">Camera inactive — use manual input below or start camera</span>
+                            </div>
+
+                            <!-- Camera control buttons -->
+                            <div class="flex gap-3 flex-wrap">
+                                <button id="btn-start-cam" onclick="window.handleStartCamera()" class="cam-btn cam-btn-start">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                    Start Camera
+                                </button>
+                                <button id="btn-stop-cam" onclick="window.handleStopCamera()" class="cam-btn cam-btn-stop" disabled>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h6v4H9z"/>
+                                    </svg>
+                                    Stop Camera
+                                </button>
+                                <div class="flex-1"></div>
+                                <div class="text-xs text-slate-400 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    HTTPS required in production
+                                </div>
+                            </div>
+
+                            <!-- Divider -->
+                            <div class="flex items-center gap-3">
+                                <div class="flex-1 h-px bg-slate-100"></div>
+                                <span class="text-xs text-slate-400 font-medium">or enter manually</span>
+                                <div class="flex-1 h-px bg-slate-100"></div>
+                            </div>
+
+                            <!-- Manual input row -->
                             <div class="flex gap-3">
-                                <input id="scan-input" type="text" class="form-input" placeholder="e.g. NES-2024-001"
-                                    onkeydown="if(event.key==='Enter') scanModule.scan()" />
-                                <button onclick="scanModule.scan()" id="scan-btn"
+                                <input id="scan-input" type="text" class="form-input"
+                                    placeholder="e.g. NES-2024-001"
+                                    onkeydown="if(event.key==='Enter') window.handleScan()" />
+                                <button onclick="window.handleScan()" id="scan-btn"
                                     class="px-6 py-2.5 rounded-xl text-white font-semibold text-sm whitespace-nowrap flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all"
                                     style="background: var(--nestle-accent);">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5H7a2 2 0 00-2 2v6m14-4V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                                     </svg>
                                     Scan
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Scan Result -->
-                        <div id="scan-result" class="hidden bg-white rounded-2xl border border-slate-100 p-6">
-                            <div class="flex items-center justify-between mb-4">
-                                <h4 class="font-semibold text-slate-900">Batch Details</h4>
-                                <div id="scan-result-badge"></div>
+                        <!-- ── Scan Result Card ── -->
+                        <div id="scan-result" class="hidden bg-white rounded-2xl border border-slate-100 p-6 result-enter">
+                            <!-- Header row -->
+                            <div class="flex items-center justify-between mb-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#f0f9ff;">
+                                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-slate-900 text-sm">Batch Details</div>
+                                        <div class="text-xs text-slate-400" id="scan-result-timestamp"></div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div id="scan-dispatch-chip"></div>
+                                    <div id="scan-result-badge"></div>
+                                </div>
                             </div>
+
+                            <!-- Detail grid -->
                             <div class="grid grid-cols-2 gap-3" id="scan-result-grid"></div>
-                            <div id="scan-mrsl-info" class="mt-4 p-4 rounded-xl text-sm font-medium"></div>
+
+                            <!-- Shelf life bar (full width) -->
+                            <div id="scan-shelf-section" class="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Shelf Life Remaining</span>
+                                    <span class="text-xs font-bold text-slate-700" id="scan-shelf-pct"></span>
+                                </div>
+                                <div class="h-2.5 rounded-full bg-slate-200 overflow-hidden">
+                                    <div id="scan-shelf-fill" class="h-full rounded-full transition-all duration-700"></div>
+                                </div>
+                            </div>
+
+                            <!-- MRSL verdict banner -->
+                            <div id="scan-mrsl-info" class="mt-4 p-4 rounded-xl text-sm font-medium flex items-start gap-3"></div>
                         </div>
 
+                        <!-- ── Error Panel ── -->
                         <div id="scan-error"
-                            class="hidden bg-red-50 border border-red-200 rounded-2xl p-5 text-sm text-red-700 flex items-center gap-3">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span id="scan-error-msg">Batch not found.</span>
+                            class="hidden bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start gap-4 result-enter">
+                            <div class="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-red-800 text-sm mb-1">Scan Failed</div>
+                                <div class="text-red-700 text-sm" id="scan-error-msg">Batch not found.</div>
+                            </div>
                         </div>
+
                     </div>
                 </div>
 
@@ -1054,6 +1320,8 @@
         };
 
         window.navigate = function (page) {
+            // Stop camera if leaving the scan page
+            if (page !== 'scan' && window.scanModule) scanModule.stopCamera();
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(`page-${page}`).classList.add('active');
@@ -1223,70 +1491,278 @@
             }
         };
 
-        // ──────────────── SCAN MODULE ─────────────────
+        // ──────────────── SCAN MODULE (Dual-Engine) ─────────────────
         window.scanModule = {
-            async scan() {
-                const input = document.getElementById('scan-input').value.trim();
-                const resultEl = document.getElementById('scan-result');
-                const errorEl = document.getElementById('scan-error');
-                const visText = document.getElementById('scan-vis-text');
+            _stream: null,          // active MediaStream
+            _nativeLoop: false,     // BarcodeDetector rAF loop running
+            _quaggaActive: false,   // QuaggaJS initialized
+            _lastCode: '',          // debounce repeated detections
+            _lastCodeTs: 0,
 
+            // ─── Camera Lifecycle ───────────────────────────────────
+            async startCamera() {
+                if (this._stream) return; // already on
+                const startBtn = document.getElementById('btn-start-cam');
+                const stopBtn  = document.getElementById('btn-stop-cam');
+                startBtn.disabled = true;
+                this._setStatus('Requesting camera access…', 'idle');
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                        audio: false
+                    });
+                    this._stream = stream;
+
+                    // Hide idle overlay
+                    document.getElementById('scan-idle-overlay').style.display = 'none';
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+
+                    if ('BarcodeDetector' in window) {
+                        // ── Engine A: Native BarcodeDetector API ──
+                        this._startNativeLoop(stream);
+                    } else {
+                        // ── Engine B: QuaggaJS fallback ──
+                        this._setStatus('Loading QuaggaJS fallback…', 'idle');
+                        await this._loadQuagga();
+                        this._startQuagga(stream);
+                    }
+                } catch (err) {
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    const msg = err.name === 'NotAllowedError'
+                        ? 'Camera permission denied. Please allow camera access and try again.'
+                        : 'Camera unavailable: ' + err.message;
+                    this._setStatus(msg, 'error');
+                    toast(msg, 'error');
+                }
+            },
+
+            stopCamera() {
+                if (this._nativeLoop) {
+                    this._nativeLoop = false;
+                }
+                if (this._quaggaActive && window.Quagga) {
+                    try { Quagga.stop(); } catch(e) {}
+                    this._quaggaActive = false;
+                    document.getElementById('scan-quagga-container').style.display = 'none';
+                }
+                if (this._stream) {
+                    this._stream.getTracks().forEach(t => t.stop());
+                    this._stream = null;
+                }
+                const video = document.getElementById('scan-video');
+                video.srcObject = null;
+                video.style.display = 'none';
+
+                document.getElementById('scan-idle-overlay').style.display = '';
+                document.getElementById('engine-badge').classList.remove('visible');
+                document.getElementById('btn-start-cam').disabled = false;
+                document.getElementById('btn-stop-cam').disabled = true;
+                this._setStatus('Camera inactive — use manual input below or start camera', 'idle');
+            },
+
+            // ─── Native BarcodeDetector Loop ────────────────────────
+            _startNativeLoop(stream) {
+                const video = document.getElementById('scan-video');
+                video.srcObject = stream;
+                video.style.display = 'block';
+
+                const formats = ['code_128','ean_13','ean_8','code_39','qr_code','pdf417','data_matrix','itf','codabar','upc_a','upc_e'];
+                let detector;
+                try { detector = new BarcodeDetector({ formats }); }
+                catch(e) { detector = new BarcodeDetector(); }
+
+                document.getElementById('engine-badge').classList.add('visible');
+                document.getElementById('engine-label').textContent = 'Native API';
+                this._setStatus('Camera active — point at barcode to scan automatically', 'active');
+
+                this._nativeLoop = true;
+                const self = this;
+                const loop = async () => {
+                    if (!self._nativeLoop) return;
+                    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                        try {
+                            const codes = await detector.detect(video);
+                            if (codes.length > 0) {
+                                self._onBarcodeDetected(codes[0].rawValue);
+                            }
+                        } catch(e) { /* frame not ready */ }
+                    }
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
+            },
+
+            // ─── QuaggaJS Engine ────────────────────────────────────
+            async _loadQuagga() {
+                if (window.Quagga) return;
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js';
+                    s.onload  = resolve;
+                    s.onerror = () => reject(new Error('Failed to load QuaggaJS'));
+                    document.head.appendChild(s);
+                });
+            },
+
+            _startQuagga(stream) {
+                const container = document.getElementById('scan-quagga-container');
+                container.style.display = 'block';
+
+                document.getElementById('engine-badge').classList.add('visible');
+                document.getElementById('engine-label').textContent = 'QuaggaJS';
+                this._setStatus('Camera active — point at barcode to scan automatically', 'active');
+
+                const self = this;
+                Quagga.init({
+                    inputStream: { type: 'LiveStream', target: container,
+                        constraints: { facingMode: 'environment', width: 1280, height: 720 } },
+                    decoder: { readers: ['code_128_reader','ean_reader','ean_8_reader','code_39_reader','upc_reader','itf_reader'] },
+                    locate: true
+                }, (err) => {
+                    if (err) {
+                        self._setStatus('QuaggaJS init error: ' + err, 'error');
+                        return;
+                    }
+                    Quagga.start();
+                    self._quaggaActive = true;
+                });
+                Quagga.onDetected((result) => {
+                    const code = result && result.codeResult && result.codeResult.code;
+                    if (code) self._onBarcodeDetected(code);
+                });
+            },
+
+            // ─── Shared Detection Handler ────────────────────────────
+            _onBarcodeDetected(raw) {
+                const now = Date.now();
+                // Debounce: ignore same code within 2.5s
+                if (raw === this._lastCode && now - this._lastCodeTs < 2500) return;
+                this._lastCode  = raw;
+                this._lastCodeTs = now;
+
+                // Fill manual input field so user sees what was scanned
+                document.getElementById('scan-input').value = raw;
+                this._lookupAndShow(raw);
+            },
+
+            // ─── Lookup + Render ─────────────────────────────────────
+            _lookupAndShow(input) {
+                const resultEl = document.getElementById('scan-result');
+                const errorEl  = document.getElementById('scan-error');
+                // Reset
                 resultEl.classList.add('hidden');
                 errorEl.classList.add('hidden');
 
-                if (!input) { toast('Please enter a barcode or batch number.', 'error'); return; }
-
-                visText.textContent = `Scanning: ${input}…`;
-                setLoading('scan-btn', true);
-
-                // Search batches collection for matching batchNumber
                 const batch = allBatches.find(b => b.batchNumber.toLowerCase() === input.toLowerCase());
 
-                await new Promise(r => setTimeout(r, 600)); // simulate scan delay
-
                 if (!batch) {
-                    visText.textContent = `❌ Not found: ${input}`;
-                    document.getElementById('scan-error-msg').textContent = `No batch found with ID "${input}". Please verify the barcode and try again.`;
+                    this._setStatus('Scan failed — batch not recognised', 'error');
+                    document.getElementById('scan-error-msg').textContent =
+                        `No batch found with ID "${input}". Please verify the barcode and try again.`;
+                    // Re-trigger animation
+                    errorEl.classList.remove('hidden', 'result-enter');
+                    void errorEl.offsetWidth;
+                    errorEl.classList.add('result-enter', 'hidden');
                     errorEl.classList.remove('hidden');
-                    setLoading('scan-btn', false);
+                    toast('Batch not found: ' + input, 'error');
                     return;
                 }
 
-                visText.textContent = `✅ Matched: ${batch.batchNumber}`;
-                const ms = mrslStatus(batch);
+                this._setStatus(`✓ Matched: ${batch.batchNumber}`, 'active');
+
+                const ms  = mrslStatus(batch);
                 const pct = shelfLifePct(batch.manufacturingDate, batch.expiryDate);
 
+                // MRSL badge
                 document.getElementById('scan-result-badge').innerHTML = badgeHtml(ms.label, ms.color);
 
-                const fields = [
-                    ['Batch Number', `<span class="mono font-medium">${batch.batchNumber}</span>`],
-                    ['Product', batch.productName],
-                    ['Mfg Date', fmtDate(batch.manufacturingDate)],
-                    ['Expiry Date', fmtDate(batch.expiryDate)],
-                    ['Days Remaining', ms.daysLeft < 0 ? '<span class="text-red-600 font-semibold">EXPIRED</span>' : `<span class="font-semibold ${ms.daysLeft < 30 ? 'text-red-600' : 'text-slate-800'}">${ms.daysLeft} days</span>`],
-                    ['Quantity', batch.quantity.toLocaleString() + ' units'],
-                    ['Shelf Life Remaining', `<div class="flex items-center gap-2">${shelfBar(pct)}<span class="text-xs">${pct}%</span></div>`],
-                ];
+                // Timestamp
+                document.getElementById('scan-result-timestamp').textContent =
+                    'Scanned at ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
+                // Dispatch match check — does this batch appear in the latest FEFO selection?
+                const dispatchChip = document.getElementById('scan-dispatch-chip');
+                const matchedOrder = allBatches.some(b => b.batchNumber === batch.batchNumber);
+                dispatchChip.innerHTML = matchedOrder
+                    ? `<span class="dispatch-chip dispatch-chip-match">📦 In Stock</span>`
+                    : `<span class="dispatch-chip dispatch-chip-nomatch">Not dispatched</span>`;
+
+                // Detail grid (6 cells)
+                const fields = [
+                    ['Batch Number',   `<span class="mono font-semibold text-slate-800">${batch.batchNumber}</span>`],
+                    ['Product',        `<span class="font-medium text-slate-800">${batch.productName}</span>`],
+                    ['Mfg Date',       fmtDate(batch.manufacturingDate)],
+                    ['Expiry Date',    fmtDate(batch.expiryDate)],
+                    ['Days Remaining', ms.daysLeft < 0
+                        ? '<span class="text-red-600 font-bold">EXPIRED</span>'
+                        : `<span class="font-bold ${ms.daysLeft < 30 ? 'text-red-600' : ms.daysLeft < 60 ? 'text-amber-600' : 'text-green-700'}">${ms.daysLeft}d</span>`],
+                    ['Quantity',       `<span class="font-medium">${batch.quantity.toLocaleString()} units</span>`],
+                ];
                 document.getElementById('scan-result-grid').innerHTML = fields.map(([k, v]) =>
-                    `<div class="bg-slate-50 rounded-lg p-3"><div class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">${k}</div><div class="text-sm text-slate-800">${v}</div></div>`
+                    `<div class="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                      <div class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">${k}</div>
+                      <div class="text-sm text-slate-800">${v}</div>
+                    </div>`
                 ).join('');
 
+                // Shelf life bar
+                const fillEl  = document.getElementById('scan-shelf-fill');
+                const pctEl   = document.getElementById('scan-shelf-pct');
+                const barColor = pct >= 50 ? '#22c55e' : pct >= 20 ? '#f59e0b' : '#ef4444';
+                fillEl.style.width      = pct + '%';
+                fillEl.style.background = barColor;
+                pctEl.textContent       = pct + '%';
+                pctEl.style.color       = barColor;
+
+                // MRSL verdict banner
                 const mrslEl = document.getElementById('scan-mrsl-info');
-                if (ms.ok) {
-                    mrslEl.className = 'mt-4 p-4 rounded-xl text-sm font-medium bg-green-50 border border-green-200 text-green-800';
-                    mrslEl.textContent = `✅ MRSL Compliant — This batch meets shelf life requirements and is cleared for dispatch.`;
+                if (ms.daysLeft < 0) {
+                    mrslEl.className = 'mt-4 p-4 rounded-xl text-sm font-medium flex items-start gap-3 mrsl-fail';
+                    mrslEl.innerHTML = `<span class="text-xl leading-none">❌</span><div><strong>EXPIRED</strong> — This batch has expired and must not be dispatched.</div>`;
+                } else if (!ms.ok) {
+                    mrslEl.className = 'mt-4 p-4 rounded-xl text-sm font-medium flex items-start gap-3 mrsl-fail';
+                    mrslEl.innerHTML = `<span class="text-xl leading-none">🚫</span><div><strong>MRSL Violation</strong> — Shelf life remaining (${pct}%) or days left (${ms.daysLeft}d) is below threshold.<br><span class="font-bold">DO NOT DISPATCH.</span></div>`;
+                } else if (ms.color === 'yellow') {
+                    mrslEl.className = 'mt-4 p-4 rounded-xl text-sm font-medium flex items-start gap-3 mrsl-warn';
+                    mrslEl.innerHTML = `<span class="text-xl leading-none">⚠️</span><div><strong>Near Limit</strong> — Shelf life is ${pct}% with ${ms.daysLeft} days remaining. Dispatch with caution.</div>`;
                 } else {
-                    mrslEl.className = 'mt-4 p-4 rounded-xl text-sm font-medium bg-red-50 border border-red-200 text-red-800';
-                    mrslEl.textContent = ms.daysLeft < 0
-                        ? '❌ EXPIRED — This batch has expired and must not be dispatched.'
-                        : `❌ MRSL Violation — Shelf life remaining (${pct}%) or days left (${ms.daysLeft}d) is below the minimum threshold. DO NOT DISPATCH.`;
+                    mrslEl.className = 'mt-4 p-4 rounded-xl text-sm font-medium flex items-start gap-3 mrsl-pass';
+                    mrslEl.innerHTML = `<span class="text-xl leading-none">✅</span><div><strong>MRSL Compliant</strong> — ${pct}% shelf life remaining, ${ms.daysLeft} days to expiry. Cleared for dispatch.</div>`;
                 }
 
+                // Show with animation
+                resultEl.classList.remove('result-enter');
+                void resultEl.offsetWidth; // force reflow
+                resultEl.classList.add('result-enter');
                 resultEl.classList.remove('hidden');
-                setLoading('scan-btn', false);
+                toast('Batch found: ' + batch.batchNumber, 'success');
+            },
+
+            // ─── Manual Scan (text input) ────────────────────────────
+            scan() {
+                const input = document.getElementById('scan-input').value.trim();
+                if (!input) { toast('Please enter a barcode or batch number.', 'error'); return; }
+                this._lookupAndShow(input);
+            },
+
+            // ─── Status Bar Helper ───────────────────────────────────
+            _setStatus(text, state) {
+                const dot  = document.getElementById('scan-status-dot');
+                const span = document.getElementById('scan-status-text');
+                if (!dot || !span) return;
+                dot.className = 'scan-status-dot' + (state === 'active' ? ' active' : state === 'error' ? ' error' : '');
+                span.textContent = text;
+                span.style.color = state === 'error' ? '#dc2626' : state === 'active' ? '#16a34a' : '';
             }
         };
+
+        // ─── Global handle* shims for HTML onclick attributes ─────────
+        window.handleStartCamera = () => scanModule.startCamera();
+        window.handleStopCamera  = () => scanModule.stopCamera();
+        window.handleScan        = () => scanModule.scan();
 
         // ──────────────── DISPATCH MODULE ─────────────────
         window.dispatchModule = {
